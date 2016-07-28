@@ -33,7 +33,7 @@ def get_heroes():
         module = importlib.import_module('warcraft.heroes.' + module_name)
         
         for obj_name, obj in inspect.getmembers(module):
-            if obj_name.startswith('_') or obj_name == 'Hero':
+            if obj_name.startswith('_') or obj is Hero:
                 continue
             if inspect.isclass(obj) and issubclass(obj, Hero):
                 yield obj
