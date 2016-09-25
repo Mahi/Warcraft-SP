@@ -116,22 +116,18 @@ class _BoundMethodWrapper(_MethodWrapper):
         """
         self.obj = obj
         super().__init__(method, cooldown_func, fail_callback)
-        self._previous_cooldown = 0
-        self._previous_call_time = 0
+        self._last_cooldown = 0
+        self._last_call_time = 0
 
     @property
-    def previous_cooldown(self):
-        return self._previous_cooldown
-
-    @property
-    def cooldown(self):
+    def remaining_cooldown(self):
         dt = time.time() - self._last_call_time
-        return max(0, self.previous_cooldown - dt)
+        return max(0, self._last_cooldown - dt)
 
-    @cooldown.setter
-    def cooldown(self, value):
-        self._previous_cooldown = value
-        self._previous_call_time = time.time()
+    @remaining_cooldown.setter
+    def remaining_cooldown(self, value):
+        self._last_cooldown = value
+        self._last_call_time = time.time()
 
     def get_max_cooldown(self, *args, **kwargs):
         """Get the method's maximum cooldown.
@@ -151,5 +147,5 @@ class _BoundMethodWrapper(_MethodWrapper):
         if self.remaining_cooldown > 0:
             self.fail_callback(self.obj, *args, **kwargs)
         else:
-            self.cooldown = self.get_max_cooldown(*args, **kwargs)
+            self.remaining_cooldown = self.get_max_cooldown(*args, **kwargs)
             self.method(self.obj, *args, **kwargs)
