@@ -141,7 +141,6 @@ class _BoundMethodWrapper(_MethodWrapper):
         """
         return self.cooldown_func(self.obj, *args, **kwargs)
 
-    @functools.wraps(self.method)
     def __call__(self, *args, **kwargs):
         """Attempt to call the wrapped method.
 
