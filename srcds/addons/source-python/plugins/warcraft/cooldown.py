@@ -9,7 +9,7 @@ __all__ = (
     )
 
 
-def _static_cooldown(cooldown):
+def _static_cooldown(cooldown, *args, **kwargs):
     """Return a cooldown.
 
     Used to convert a static integer cooldown into a function.
