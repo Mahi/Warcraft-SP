@@ -9,7 +9,7 @@ __all__ = (
     )
 
 
-def _static_cooldown(cooldown):
+def _static_cooldown(cooldown, *args, **kwargs):
     """Return a cooldown.
 
     Used to convert a static integer cooldown into a function.
@@ -26,8 +26,12 @@ def cooldown(cooldown, fail_callback=None):
         A function to call if the method is still on cooldown
     """
     def decorator(method):
+        nonlocal cooldown
         if isinstance(cooldown, int):
             cooldown = functools.partial(_static_cooldown, cooldown)
+        elif not callable(cooldown):
+            raise ValueError(
+                "Invalid argument {f} of type {f.__class__}".format(f=cooldown))
         return _UnboundMethodWrapper(method, cooldown, fail_callback)
     return decorator
 
@@ -82,7 +86,7 @@ class _UnboundMethodWrapper(_MethodWrapper):
         if bound is None:
             bound = self._bindings[id(obj)] = _BoundMethodWrapper(
                 obj, self.method, self.cooldown_func, self.fail_callback)
-        return bound_wrapper
+        return bound
 
 
 class _BoundMethodWrapper(_MethodWrapper):
@@ -115,22 +119,18 @@ class _BoundMethodWrapper(_MethodWrapper):
         """
         self.obj = obj
         super().__init__(method, cooldown_func, fail_callback)
-        self._previous_cooldown = 0
-        self._previous_call_time = 0
+        self._last_cooldown = 0
+        self._last_call_time = 0
 
     @property
-    def previous_cooldown(self):
-        return self._previous_cooldown
-
-    @property
-    def cooldown(self):
+    def remaining_cooldown(self):
         dt = time.time() - self._last_call_time
-        return max(0, self.previous_cooldown - dt)
+        return max(0, self._last_cooldown - dt)
 
-    @cooldown.setter
-    def cooldown(self, value):
-        self._previous_cooldown = value
-        self._previous_call_time = time.time()
+    @remaining_cooldown.setter
+    def remaining_cooldown(self, value):
+        self._last_cooldown = value
+        self._last_call_time = time.time()
 
     def get_max_cooldown(self, *args, **kwargs):
         """Get the method's maximum cooldown.
@@ -140,7 +140,6 @@ class _BoundMethodWrapper(_MethodWrapper):
         """
         return self.cooldown_func(self.obj, *args, **kwargs)
 
-    @functools.wraps(self.method)
     def __call__(self, *args, **kwargs):
         """Attempt to call the wrapped method.
 
@@ -151,5 +150,5 @@ class _BoundMethodWrapper(_MethodWrapper):
         if self.remaining_cooldown > 0:
             self.fail_callback(self.obj, *args, **kwargs)
         else:
-            self.cooldown = self.get_max_cooldown(*args, **kwargs)
+            self.remaining_cooldown = self.get_max_cooldown(*args, **kwargs)
             self.method(self.obj, *args, **kwargs)
