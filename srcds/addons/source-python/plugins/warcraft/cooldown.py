@@ -26,6 +26,7 @@ def cooldown(cooldown, fail_callback=None):
         A function to call if the method is still on cooldown
     """
     def decorator(method):
+        nonlocal cooldown
         if isinstance(cooldown, int):
             cooldown = functools.partial(_static_cooldown, cooldown)
         return _UnboundMethodWrapper(method, cooldown, fail_callback)
