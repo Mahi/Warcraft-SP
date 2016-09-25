@@ -2,6 +2,7 @@
 
 # Warcraft imports
 from warcraft.entities.entity import Entity
+from warcraft.utilities import CooldownDict
 
 __all__ = (
     'Skill',
@@ -78,7 +79,40 @@ class Skill(Entity, metaclass=_SkillMeta):
 
     These registered callbacks will then be executed by
     the :meth:`execute` method automatically upon an event happening.
+
+    Skills can also be given cooldowns through the :attr:`cooldowns`
+    dictionary:
+
+    .. code-block:: python
+
+        @callback('player_attack')
+        def _add_skull(self, **eargs):
+            if self.cooldowns['attack'] <= 0:
+                self.skulls += 1
+                self.cooldowns['attack'] = 8
+
+        @callback('player_ultimate')
+        def _spend_skulls(self, player, **eargs):
+            cd = self.cooldowns['ultimate']
+            if cd <= 0:
+                self.speed += self.skulls * 0.01 * self.level
+                self.health += self.skulls + self.level
+                self.cooldowns['ultimate'] = 40 - self.skulls
+                self.skulls = 0
+            else:
+                SayText2('Cooldown {cd}').send(player.index, cd=int(cd))
     """
+
+    def __init__(self, owner, level=0):
+        """Initialize the skill. Adds the :attr:`cooldowns` attribute.
+
+        :param object owner:
+            The owner of the skill
+        :param int level:
+            Initial level of the skill
+        """
+        super().__init__(owner, level)
+        self.cooldowns = CooldownDict()
 
     def execute(self, event_name, event_args):
         """Execute any registerd callbacks for the event.
