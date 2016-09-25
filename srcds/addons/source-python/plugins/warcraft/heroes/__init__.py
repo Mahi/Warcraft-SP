@@ -1,7 +1,11 @@
 """Package which imports all hero classes from all modules."""
 
+# Python 3 imports
+import sys
+
 # Warcraft imports
-from warcraft.utilities import get_classes_from_package
+from warcraft.utilities import get_classes_from_module
+from warcraft.utilities import import_submodules
 from warcraft.entities import Hero
 
 __all__ = (
@@ -17,6 +21,8 @@ def get_heroes():
 
     Ignores modules and classes with a leading underscore in their name.
     """
-    for cls in get_classes_from_package(__path__):
-        if issubclass(cls, Hero):
-            yield cls
+    heroes_package = sys.modules['warcraft.heroes']
+    for module in import_submodules(heroes_package):
+        for cls in get_classes_from_module(module):
+            if issubclass(cls, Hero):
+                yield cls

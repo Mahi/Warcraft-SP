@@ -96,37 +96,30 @@ def get_classes_from_module(module, *, private=False, imported=False):
             continue
         if not inspect.isclass(obj):
             continue
-        if not imported and obj.__module__ == module.__name__:
+        if not imported and obj.__module__ != module.__name__:
             continue
         yield obj
 
 
-def get_classes_from_package(package_path, *,
-        private_modules=False, private_classes=False, imported_classes=False,
-        recursive=True):
+def import_submodules(package, *, private_modules=False, recursive=True):
     """Yield classes from all modules of a package.
 
-    :param module package_path:
-        Path to the package to get the classes from
+    :param module package:
+        Package to get the classes from
     :param bool private_modules:
         Seek for classes inside of modules with leading underscore
-    :param bool private_classes:
-        Yield classes prefixed with underscore
-    :param bool imported_classes:
-        Yield classes imported from other modules
     :param bool recursive:
         Recursively also get classes from subpackages
     """
-    for finder, module_name, ispkg in pkgutil.iter_modules(package_path):
+    for loader, module_name, is_pkg in pkgutil.walk_packages(package.__path__):
         if not private_modules and module_name.startswith('_'):
             continue
-        path = '.'.join((package_path, module_name))
-        if recursive and ispkg:
-            yield from get_classes_from_package(path)
-        else:
-            module = importlib.import_module(path)
-            yield from get_classes_from_module(
-                module, private=private_classes, imported=imported_classes)
+        full_name = package.__name__ + '.' + module_name
+        module = importlib.import_module(full_name)
+        if not is_pkg:
+            yield module
+        elif recursive:
+            yield from import_submodules(module)
 
 
 class CooldownDict(collections.defaultdict):
