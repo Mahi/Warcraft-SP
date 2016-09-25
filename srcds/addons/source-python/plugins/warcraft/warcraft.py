@@ -35,23 +35,23 @@ def _new_player(index):
     steamid = player.steamid
 
     # Load heroes
-    for hero_id, level, xp in database.get_heroes_data(steamid):
+    for hero_id, level, xp in g_database.get_heroes_data(steamid):
         with contextlib.suppress(KeyError):
-            hero = player.heroes[hero_id] = heroes[hero_id](player, level, xp)
+            hero = player.heroes[hero_id] = g_heroes[hero_id](player, level, xp)
             # And their skills
-            for skill_id, level in database.get_skills_data(steamid, hero_id):
+            for skill_id, level in g_database.get_skills_data(steamid, hero_id):
                 hero.skills[skill_id].level = level
 
     # Give the player all heroes available by his total level
     total_level = player.calculate_total_level()
-    for hero_id, hero_class in heroes.items():
+    for hero_id, hero_class in g_heroes.items():
         if hero_id in player.heroes:
             continue
         if hero_class.required_level <= total_level:
-            player.heroes[hero_id] = heroes[hero_id](player)
+            player.heroes[hero_id] = g_heroes[hero_id](player)
 
     # Set player's active hero
-    active_hero_id = database.get_active_hero_id(steamid)
+    active_hero_id = g_database.get_active_hero_id(steamid)
     if active_hero_id is not None:
         player.hero = player.heroes[active_hero_id]
     else:
@@ -79,43 +79,43 @@ def _serialize_player_data(player):
 def _save_player_data(player, *,  commit=True):
     """Save individual player's data into the database."""
     player_data, hero_data, skills_data = _serialize_player_data(player)
-    database.save_player(player_data)
-    database.save_hero(hero_data)
-    database.save_skills(skills_data)
+    g_database.save_player(player_data)
+    g_database.save_hero(hero_data)
+    g_database.save_skills(skills_data)
     if commit:
-        database.commit()
+        g_database.commit()
 
 
 def _save_all_data(*, commit=True):
     """Save every active player's data into the database."""
-    datas = (_serialize_player_data(player) for player in players.values())
+    datas = (_serialize_player_data(player) for player in g_players.values())
     try:
         players, heroes, skills_list = zip(*datas)
     except ValueError:
         return
     skills = [skill for skills in skills_list for skill in skills]  # Flatten
-    database.save_players(players)
-    database.save_heroes(heroes)
-    database.save_skills(skills)
+    g_database.save_players(players)
+    g_database.save_heroes(heroes)
+    g_database.save_skills(skills)
     if commit:
-        database.commit()
+        g_database.commit()
 
 
 def unload():
     """Store players' data and close the database."""
     _data_save_repeat.stop()
     _save_all_data()
-    database.close()
+    g_database.close()
 
 
 @Event('player_disconnect')
 def _save_disconnecters_data(event):
     """Save player's data upon disconnect."""
     index = index_from_userid(event['userid'])
-    if index not in players:
+    if index not in g_players:
         return
-    _save_player_data(players[index])
-    del players[index]
+    _save_player_data(g_players[index])
+    del g_players[index]
 
 
 # ======================================================================
@@ -126,7 +126,7 @@ def _save_disconnecters_data(event):
 def _execute_individual_skills(event):
     """Execute skills for events with only one player."""
     event_args = event.variables.as_dict()
-    player = players.from_userid(event_args.pop('userid'))
+    player = g_players.from_userid(event_args.pop('userid'))
     if player.team in (2, 3):
         event_args['player'] = player
         player.hero.execute_skills(event.name, event_args)
@@ -146,8 +146,8 @@ def _execute_interaction_skills(event):
         return
     event_args = event.variables.as_dict()
 
-    attacker = players.from_userid(event_args.pop('attacker'))
-    victim = players.from_userid(event_args.pop('userid'))
+    attacker = g_players.from_userid(event_args.pop('attacker'))
+    victim = g_players.from_userid(event_args.pop('userid'))
     event_args.update(attacker=attacker, victim=victim)
 
     event_names = _event_name_conversions[event.name]
@@ -166,7 +166,7 @@ def _give_xp_from_kill(event):
     """Give the killing player XP from his kill."""
     if not event['attacker'] or event['attacker'] == event['userid']:
         return
-    attacker = players.from_userid(event['attacker'])
+    attacker = g_players.from_userid(event['attacker'])
     attacker.hero.xp += 45 if event['headshot'] else 30
 
 
@@ -177,7 +177,7 @@ def _give_xp_from_kill(event):
 @Event('player_spawn')
 def _send_hero_info_message(event):
     """Send the player his current hero's information."""
-    player = players.from_userid(event['userid'])
+    player = g_players.from_userid(event['userid'])
     if player.steamid != 'BOT':
         _hero_info_message.send(player.index, hero=player.hero)
 
@@ -213,13 +213,13 @@ def _spendskills_command_callback(command, player_index, only=None):
 @ClientCommand('resetskills')
 @SayCommand('resetskills')
 def _resetskills_command_callback(command, player_index, only=None):
-    players[player_index].hero.reset_skills()
+    g_players[player_index].hero.reset_skills()
     return CommandReturn.BLOCK
 
 @ClientCommand('heroinfo')
 @SayCommand('heroinfo')
 def _heroinfo_command_callback(command, player_index, only=None):
-    _hero_info_message.send(player_index, hero=players[player_index].hero)
+    _hero_info_message.send(player_index, hero=g_players[player_index].hero)
     return CommandReturn.BLOCK
 
 
@@ -228,13 +228,13 @@ def _heroinfo_command_callback(command, player_index, only=None):
 # ======================================================================
 
 # A dictionary of all the players, uses indexes as keys
-players = PlayerDictionary(_new_player)
+g_players = PlayerDictionary(_new_player)
 
-# A dictionary of the heroes from heroes.__init__.get_heroes
-heroes = {hero.class_id: hero for hero in warcraft.heroes.get_heroes()}
+# A dictionary of the heroes from warcraft.heroes.__init__.get_heroes
+g_heroes = {hero.class_id: hero for hero in warcraft.heroes.get_heroes()}
 
 # Database wrapper for accessing the Warcraft database
-database = warcraft.database.SQLite(PLUGIN_DATA_PATH / 'warcraft.db')
+g_database = warcraft.database.SQLite(PLUGIN_DATA_PATH / 'warcraft.db')
 
 # A tick repeat for saving everyone's data every 4 minutes
 _data_save_repeat = TickRepeat(_save_all_data)
@@ -252,7 +252,7 @@ _level_up_message = SayText2(_tr['Level Up'])
 
 def _on_main_menu_build(menu, player_index):
     """Build the main menu."""
-    player = players[player_index]
+    player = g_players[player_index]
     menu.clear()
     menu.description = player.hero.name
     menu.extend([
@@ -264,7 +264,7 @@ def _on_main_menu_build(menu, player_index):
 
 def _on_main_menu_select(menu, player_index, choice):
     """React to a main menu selection."""
-    player = players[player_index]
+    player = g_players[player_index]
     if choice.value == 'reset':
         player.hero.reset_skills()
         return menu
@@ -279,11 +279,11 @@ main_menu = PagedMenu(
 
 def _on_change_hero_menu_build(menu, player_index):
     """Build the change hero menu."""
-    player = players[player_index]
+    player = g_players[player_index]
     menu.clear()
     menu.description = player.hero.name
     total_level = player.calculate_total_level()
-    for hero_id, hero_class in heroes.items():
+    for hero_id, hero_class in g_heroes.items():
         if hero_class.required_level <= total_level:
             level = player.heroes[hero_id].level if hero_id in player.heroes else 0
             text = _tr['Owned Hero Text'].get_string(name=hero_class.name, level=level)
@@ -294,7 +294,7 @@ def _on_change_hero_menu_build(menu, player_index):
 
 def _on_change_hero_menu_select(menu, player_index, choice):
     """React to a change hero menu selection."""
-    player = players[player_index]
+    player = g_players[player_index]
     hero_id = choice.value.class_id
     if hero_id == player.hero.class_id:
         return
@@ -313,7 +313,7 @@ change_hero_menu = PagedMenu(
 
 def _on_spend_skills_menu_build(menu, player_index):
     """Build the spend skills menu."""
-    player = players[player_index]
+    player = g_players[player_index]
     hero = player.hero
     menu.clear()
     menu.title = hero.name
@@ -328,7 +328,7 @@ def _on_spend_skills_menu_build(menu, player_index):
 
 def _on_spend_skills_menu_select(menu, player_index, choice):
     """React to an spend skills menu selection."""
-    hero = players[player_index].hero
+    hero = g_players[player_index].hero
     if hero.can_upgrade_skill(choice.value):
         hero.upgrade_skill(choice.value)
     return menu
@@ -343,7 +343,7 @@ spend_skills_menu = PagedMenu(
 def _on_hero_infos_menu_build(menu, player_index):
     """Build the hero infos menu."""
     menu.clear()
-    for hero_class in heroes.values():
+    for hero_class in g_heroes.values():
         menu.append(PagedOption(hero_class.name, hero_class))
 
 def _on_hero_infos_menu_select(menu, player_index, choice):
