@@ -1,9 +1,11 @@
 """Utility functions/classes needed internally by the plugin."""
 
 # Python 3 imports
+import collections
 import importlib
 import inspect
 import pkgutil
+import time
 
 __all__ = (
     'ClassProperty',
@@ -125,3 +127,40 @@ def get_classes_from_package(package_path, *,
             module = importlib.import_module(path)
             yield from get_classes_from_module(
                 module, private=private_classes, imported=imported_classes)
+
+
+class CooldownDict(collections.defaultdict):
+    """A dictionary for managing cooldowns.
+
+    For every individual cooldown, you must come up with an unique key.
+    Good examples are the name of the function/similar whose cooldown
+    you're managing, or the function/similar itself (if hashable).
+
+    Example usage to prevent printing too often:
+
+    .. code-block:: python
+
+        cd_dict = CooldownDict()
+
+        # Can print once a second
+        def slow_print(*args, **kwargs):
+            if cd_dict['slow_print'] <= 0:
+                print(*args, **kwargs)
+                cd_dict['slow_print'] = 1
+
+        # Can print once every three seconds, raises error
+        def really_slow_and_dangerous_print(*args, **kwargs):
+            if cd_dict['really_slow_print'] > 0:
+                raise CooldownError  # user defined
+            print(*args, **kwargs)
+            cd_dict['really_slow_print'] = 3
+    """
+
+    def __init__(self, default_factory=int, *args, **kwargs):
+        super().__init__(default_factory, *args, **kwargs)
+
+    def __getitem__(self, key):
+        return super().__getitem__(key) - time.time()
+
+    def __setitem__(self, key, value):
+        return super().__setitem__(key, value + time.time())
