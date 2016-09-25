@@ -83,7 +83,7 @@ class _UnboundMethodWrapper(_MethodWrapper):
         if bound is None:
             bound = self._bindings[id(obj)] = _BoundMethodWrapper(
                 obj, self.method, self.cooldown_func, self.fail_callback)
-        return bound_wrapper
+        return bound
 
 
 class _BoundMethodWrapper(_MethodWrapper):
