@@ -29,6 +29,9 @@ def cooldown(cooldown, fail_callback=None):
         nonlocal cooldown
         if isinstance(cooldown, int):
             cooldown = functools.partial(_static_cooldown, cooldown)
+        elif not callable(cooldown):
+            raise ValueError(
+                "Invalid argument {f} of type {f.__class__}".format(f=cooldown))
         return _UnboundMethodWrapper(method, cooldown, fail_callback)
     return decorator
 
