@@ -2,6 +2,7 @@
 
 # Python 3 imports
 import contextlib
+from collections import OrderedDict
 
 # Source.Python imports
 from commands import CommandReturn
@@ -230,8 +231,12 @@ def _heroinfo_command_callback(command, player_index, only=None):
 # A dictionary of all the players, uses indexes as keys
 g_players = PlayerDictionary(_new_player)
 
-# A dictionary of the heroes from warcraft.heroes.__init__.get_heroes
-g_heroes = {hero.class_id: hero for hero in warcraft.heroes.get_heroes()}
+# A dictionary of the heroes from warcraft.heroes.__init__.get_heroes, ordered by required level.
+g_heroes = OrderedDict(
+    sorted(
+        ((hero.class_id, hero) for hero in warcraft.heroes.get_heroes()),
+        key=lambda item: item[1].required_level)
+)
 
 # Database wrapper for accessing the Warcraft database
 g_database = warcraft.database.SQLite(PLUGIN_DATA_PATH / 'warcraft.db')
@@ -283,8 +288,7 @@ def _on_change_hero_menu_build(menu, player_index):
     menu.clear()
     menu.description = player.hero.name
     total_level = player.calculate_total_level()
-    sorted_heroes = sorted(g_heroes.items(), key=lambda hero: hero[1].required_level)
-    for hero_id, hero_class in sorted_heroes:
+    for hero_id, hero_class in g_heroes.items():
         if hero_class.required_level <= total_level:
             level = player.heroes[hero_id].level if hero_id in player.heroes else 0
             text = _tr['Owned Hero Text'].get_string(name=hero_class.name, level=level)
