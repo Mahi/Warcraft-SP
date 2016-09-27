@@ -23,6 +23,7 @@ from translations.strings import LangStrings
 # Warcraft imports
 import warcraft.database
 import warcraft.heroes
+import warcraft.listeners
 import warcraft.player
 
 
