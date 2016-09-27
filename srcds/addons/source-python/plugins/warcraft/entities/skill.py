@@ -6,6 +6,7 @@ from warcraft.utilities import CooldownDict
 
 __all__ = (
     'Skill',
+    'callback',
 )
 
 
