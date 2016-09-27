@@ -1,0 +1,15 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# PyCharm
+.idea/
+
+# Vim
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*~
+
+# VS Code
+.vscode/
+!.vscode/
