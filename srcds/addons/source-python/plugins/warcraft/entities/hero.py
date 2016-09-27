@@ -17,12 +17,16 @@ class _HeroMeta(type):
     """Metaclass for handling hero classes' skills.
 
     Adds a :attr:`skill_classes` list to all hero classes for storing
-    the skill classes of the hero.
+    the hero's skills, and `passive_classes` for storing the passives.
+
+    Also implements :meth:`skill` and :meth:`passive` decorators to
+    easily add skills and passives to the hero.
     """
 
     def __init__(cls, *args, **kwargs):
         super().__init__(*args, **kwargs)
         cls.skill_classes = []
+        cls.passive_classes = []
 
     def skill(cls, skill_class):
         """Add a skill class to the hero class's :attr:`skill_classes`.
@@ -39,12 +43,35 @@ class _HeroMeta(type):
                 ...
 
         :param type skill_class:
-            Skill class to add to the hero
+            Skill to add to the hero's skills
         """
         if skill_class in cls.skill_classes:
             raise ValueError(
                 "Skill class {0} already added to a hero.".format(skill_class))
         cls.skill_classes.append(skill_class)
+        return skill_class
+
+    def passive(cls, skill_class):
+        """Add a skill class to the hero class's :attr:`passive_classes`.
+
+        Designed to be used as a decorator:
+
+        .. code-block:: python
+
+            class MyHero(Hero):
+                ...
+
+            @MyHero.passive
+            class MySkill(Skill):
+                ...
+
+        :param type skill_class:
+            Skill to add to the hero's passives
+        """
+        if skill_class in cls.passive_classes:
+            raise ValueError(
+                "Passive class {0} already added to a hero.".format(skill_class))
+        cls.passive_classes.append(skill_class)
         return skill_class
 
     def __call__(cls, *args, **kwargs):
@@ -56,6 +83,8 @@ class _HeroMeta(type):
         instance = super().__call__(*args, **kwargs)
         for skill_class in cls.skill_classes:
             instance.skills[skill_class.class_id] = skill_class(instance)
+        for skill_class in cls.passive_classes:
+            instance.passives[skill_class.class_id] = skill_class(instance)
         return instance
 
 
@@ -67,6 +96,9 @@ class Hero(Entity, metaclass=_HeroMeta):
 
     These skills can be upgraded to be more powerful with
     :attr:`skill_points`, which are rewarded from leveling up.
+    Heroes also have passives which are equal to skills
+    but they can not be leveled through :attr:`skill points`
+    and they are always active regardless of their level.
 
     Levels in turn are gained by filling the hero's :attr:`xp_quota`,
     a value which indicates how many experience points the hero needs
@@ -92,6 +124,7 @@ class Hero(Entity, metaclass=_HeroMeta):
         super().__init__(owner, level)
         self._xp = xp
         self.skills = collections.OrderedDict()
+        self.passives = collections.OrderedDict()
 
     @property
     def xp(self):
@@ -230,3 +263,5 @@ class Hero(Entity, metaclass=_HeroMeta):
         for skill in self.skills.values():
             if skill.level > 0:
                 skill.execute(event_name, event_args)
+        for skill in self.passives.values():
+            skill.execute(event_name, event_args)
