@@ -114,7 +114,7 @@ class Hero(Entity, metaclass=_HeroMeta):
     def __init__(self, owner, level=0, xp=0):
         """Initialize the hero entity.
 
-        :param rpg.player.Player owner:
+        :param warcraft.player.Player owner:
             The player who owns the hero
         :param int level:
             Initial level of the hero
