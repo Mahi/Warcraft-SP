@@ -54,7 +54,7 @@ def _new_player(index):
 
     # Set player's active hero
     active_hero_id = g_database.get_active_hero_id(steamid)
-    if active_hero_id is not None:
+    if active_hero_id is not None and active_hero_id in player.heroes:
         player.hero = player.heroes[active_hero_id]
     else:
         player.hero = next(iter(player.heroes.values()))
