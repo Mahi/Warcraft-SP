@@ -6,7 +6,6 @@ from warcraft.utilities import CooldownDict
 
 __all__ = (
     'Skill',
-    'callback',
 )
 
 
@@ -54,6 +53,7 @@ class _SkillMeta(type):
                 continue
             for event_name in attr._events:
                 cls._event_callbacks[event_name] = attr
+
 
 class Skill(Entity, metaclass=_SkillMeta):
     """Base class for skills which grant special powers to heroes.
@@ -115,6 +115,21 @@ class Skill(Entity, metaclass=_SkillMeta):
         super().__init__(owner, level)
         self.cooldowns = CooldownDict()
 
+    @staticmethod
+    def ecallback(*event_names):
+        """Register a callback for events based on their names.
+
+        Adds an ``_events`` attribute for the callback which will later
+        be used by :class:`_SkillMeta` to parse all of the callbacks.
+
+        :param tuple \*event_names:
+            Names of the events to register the callback for
+        """
+        def decorator(f):
+            f._events = event_names
+            return f
+        return decorator
+
     def execute(self, event_name, event_args):
         """Execute any registerd callbacks for the event.
 
@@ -125,18 +140,3 @@ class Skill(Entity, metaclass=_SkillMeta):
         """
         if event_name in self._event_callbacks:
             self._event_callbacks[event_name](self, **event_args)
-
-
-def callback(*event_names):
-    """Register a callback for events based on their names.
-
-    Adds an ``_events`` attribute for the callback which will later
-    be used by :class:`_SkillMeta` to parse all of the callbacks.
-
-    :param tuple \*event_names:
-        Names of the events to register the callback for
-    """
-    def decorator(f):
-        f._events = event_names
-        return f
-    return decorator
