@@ -8,6 +8,7 @@ from commands import CommandReturn
 from commands.client import ClientCommand
 from commands.say import SayCommand
 from events import Event
+from listeners import OnLevelEnd
 from listeners.tick import TickRepeat
 from menus import ListMenu
 from menus import ListOption
@@ -110,6 +111,12 @@ def _save_all_data(*, commit=True):
     g_database.save_skills(skills)
     if commit:
         g_database.commit()
+
+
+@OnLevelEnd
+def _save_data_on_level_end(*args, **kwargs):
+    """Save every active player's data into the database."""
+    _save_all_data()
 
 
 def unload():
