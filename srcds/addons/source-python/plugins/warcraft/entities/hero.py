@@ -1,7 +1,6 @@
 """A module with the :class:`Hero` base class for all heroes."""
 
 # Python 3 imports
-import collections
 import math
 
 # Warcraft imports
@@ -82,9 +81,9 @@ class _HeroMeta(type):
         """
         instance = super().__call__(*args, **kwargs)
         for skill_class in cls.skill_classes:
-            instance.skills[skill_class.class_id] = skill_class(instance)
+            instance.skills.append(skill_class(instance))
         for skill_class in cls.passive_classes:
-            instance.passives[skill_class.class_id] = skill_class(instance)
+            instance.passives.append(skill_class(instance))
         return instance
 
 
@@ -123,8 +122,8 @@ class Hero(Entity, metaclass=_HeroMeta):
         """
         super().__init__(owner, level)
         self._xp = xp
-        self.skills = collections.OrderedDict()
-        self.passives = collections.OrderedDict()
+        self.skills = []
+        self.passives = []
 
     @property
     def xp(self):
@@ -198,7 +197,7 @@ class Hero(Entity, metaclass=_HeroMeta):
 
     @property
     def skill_points(self):
-        used_points = sum(skill.level for skill in self.skills.values())
+        used_points = sum(skill.level for skill in self.skills)
         return self.level - used_points
 
     def can_upgrade_skill(self, skill):
@@ -208,8 +207,7 @@ class Hero(Entity, metaclass=_HeroMeta):
         enough :attr:`skill_points` to upgrade the skill, and that
         the skill has not reached its maximum level yet.
         """
-        return (skill.class_id in self.skills and self.skill_points > 0
-                and not skill.on_max_level())
+        return skill in self.skills and self.skill_points > 0 and not skill.on_max_level()
 
     def upgrade_skill(self, skill):
         """Spend a skill point to upgrade a skill.
@@ -231,7 +229,7 @@ class Hero(Entity, metaclass=_HeroMeta):
         Makes sure that the hero actually owns the skill and that
         the skill is not already on level zero.
         """
-        return skill.class_id in self.skills and skill.level > 0
+        return skill in self.skills and skill.level > 0
 
     def downgrade_skill(self, skill):
         """Downgrade a skill to receive a skill point.
@@ -249,7 +247,7 @@ class Hero(Entity, metaclass=_HeroMeta):
 
     def reset_skills(self):
         """Reset all of the hero's skills back to level zero."""
-        for skill in self.skills.values():
+        for skill in self.skills:
             skill.level = 0
             warcraft.listeners.OnSkillDowngrade.manager.notify(
                 skill=skill, hero=self, player=self.owner)
@@ -260,8 +258,8 @@ class Hero(Entity, metaclass=_HeroMeta):
         Forwards the arguments to the ``execute`` method of the skills
         that have been upgraded to at least level one.
         """
-        for skill in self.skills.values():
+        for skill in self.skills:
             if skill.level > 0:
                 skill.execute(event_name, event_args)
-        for skill in self.passives.values():
+        for skill in self.passives:
             skill.execute(event_name, event_args)

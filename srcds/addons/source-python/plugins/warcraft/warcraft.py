@@ -1,7 +1,6 @@
 """Main entry point for the plugin."""
 
 # Python 3 imports
-import contextlib
 from collections import OrderedDict
 
 # Source.Python imports
@@ -38,11 +37,20 @@ def _new_player(index):
 
     # Load heroes
     for hero_id, level, xp in g_database.get_heroes_data(steamid):
-        with contextlib.suppress(KeyError):
-            hero = player.heroes[hero_id] = g_heroes[hero_id](player, level, xp)
-            # And their skills
-            for skill_id, level in g_database.get_skills_data(steamid, hero_id):
-                hero.skills[skill_id].level = level
+        try:
+            hero_class = g_heroes[hero_id]
+        except KeyError:
+            continue
+        hero = player.heroes[hero_id] = hero_class(player, level, xp)
+
+        # And their skills
+        skill_datas = {
+            skill_id: level
+            for skill_id, level in g_database.get_skills_data(steamid, hero_id)
+        }
+        for skill in hero.skills:
+            if skill.class_id in skill_datas:
+                skill.level = skill_datas[skill.class_id]
 
     # Give the player all heroes available by his total level
     total_level = player.calculate_total_level()
@@ -73,10 +81,11 @@ def _serialize_player_data(player):
         (steamid, hero.class_id, hero.level, hero.xp),
         # skills
         (
-            (steamid, hero.class_id, skill_id, skill.level)
-            for skill_id, skill in hero.skills.items()
+            (steamid, hero.class_id, skill.class_id, skill.level)
+            for skill in hero.skills
         ),
     )
+
 
 def _save_player_data(player, *,  commit=True):
     """Save individual player's data into the database."""
