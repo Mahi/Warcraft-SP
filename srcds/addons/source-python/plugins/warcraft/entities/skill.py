@@ -25,11 +25,11 @@ class _SkillMeta(type):
 
         class MySkill(Skill):
 
-            @callback('player_spawn', 'player_attack')
+            @event_callback('player_spawn', 'player_attack')
             def my_callback(self, **event_args):
                 ...
 
-            @callback('player_jump')
+            @event_callback('player_jump')
             def another_callback(self, **event_args):
                 ...
 
@@ -65,7 +65,7 @@ class Skill(Entity, metaclass=_SkillMeta):
     leveling the skill up actually has a meaning.
 
     When creating a new skill, register any of its event callbacks
-    using the :func:`callback` function:
+    using the :func:`Skill.event_callback` function:
 
     .. code-block:: python
 
@@ -74,7 +74,7 @@ class Skill(Entity, metaclass=_SkillMeta):
             max_level = 8
 
             # This will register the callback for 'player_spawn' event
-            @callback('player_spawn')
+            @Skill.event_callback('player_spawn')
             def _boost_health(self, player, **eargs):
                 player.health += self.level * 5
 
@@ -86,13 +86,13 @@ class Skill(Entity, metaclass=_SkillMeta):
 
     .. code-block:: python
 
-        @callback('player_attack')
+        @Skill.event_callback('player_attack')
         def _add_skull(self, **eargs):
             if self.cooldowns['attack'] <= 0:
                 self.skulls += 1
                 self.cooldowns['attack'] = 8
 
-        @callback('player_ultimate')
+        @Skill.event_callback('player_ultimate')
         def _spend_skulls(self, player, **eargs):
             cd = self.cooldowns['ultimate']
             if cd <= 0:
@@ -116,7 +116,7 @@ class Skill(Entity, metaclass=_SkillMeta):
         self.cooldowns = CooldownDict()
 
     @staticmethod
-    def ecallback(*event_names):
+    def event_callback(*event_names):
         """Register a callback for events based on their names.
 
         Adds an ``_events`` attribute for the callback which will later
