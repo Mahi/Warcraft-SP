@@ -7,9 +7,14 @@ from collections import OrderedDict
 from commands import CommandReturn
 from commands.client import ClientCommand
 from commands.say import SayCommand
+from entities import TakeDamageInfo
+from entities.helpers import index_from_pointer
+from entities.hooks import EntityCondition
+from entities.hooks import EntityPreHook
 from events import Event
 from listeners import OnLevelEnd
 from listeners.tick import TickRepeat
+from memory import make_object
 from menus import ListMenu
 from menus import ListOption
 from menus import PagedMenu
@@ -173,6 +178,27 @@ def _execute_interaction_skills(event):
     attacker.hero.execute_skills(event_names[0], event_args)
     event_args['player'] = victim
     victim.hero.execute_skills(event_names[1], event_args)
+
+
+@EntityPreHook(EntityCondition.is_player, 'on_take_damage')
+def _execute_pre_damage_skills(args):
+    """Execute skills for pre attack and victim."""
+    take_damage_info = make_object(TakeDamageInfo, args[1])
+    if not take_damage_info.attacker:
+        return
+    attacker = g_players[take_damage_info.attacker]
+    victim = g_players[index_from_pointer(args[0])]
+    if victim.team == attacker.team:
+        return
+    event_args = {
+        'attacker': attacker,
+        'victim': victim,
+        'take_damage_info': take_damage_info,
+    }
+    event_args['player'] = attacker
+    attacker.hero.execute_skills('pre_player_attack', event_args)
+    event_args['player'] = victim
+    victim.hero.execute_skills('pre_player_victim', event_args)
 
 
 # ======================================================================
