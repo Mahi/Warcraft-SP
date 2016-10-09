@@ -1,5 +1,8 @@
 """Contains the :class:`Skill` base class for all of the skills."""
 
+# Python 3 imports
+import collections
+
 # Warcraft imports
 from warcraft.entities.entity import Entity
 from warcraft.utilities import CooldownDict
@@ -47,12 +50,12 @@ class _SkillMeta(type):
     def __init__(cls, name, bases, attrs):
         """Initialize the skill class and register its callbacks."""
         super().__init__(name, bases, attrs)
-        cls._event_callbacks = {}
+        cls._event_callbacks = collections.defaultdict(list)
         for attr in attrs.values():
             if not hasattr(attr, '_events'):
                 continue
             for event_name in attr._events:
-                cls._event_callbacks[event_name] = attr
+                cls._event_callbacks[event_name].append(attr)
 
 
 class Skill(Entity, metaclass=_SkillMeta):
@@ -138,5 +141,7 @@ class Skill(Entity, metaclass=_SkillMeta):
         :param dict event_args:
             Event arguments forwarded to the callbacks
         """
-        if event_name in self._event_callbacks:
-            self._event_callbacks[event_name](self, **event_args)
+        if event_name not in type(self)._event_callbacks:
+            return
+        for callback in type(self)._event_callbacks[event_name]:
+            callback(self, **event_args)
