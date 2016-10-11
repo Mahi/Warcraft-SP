@@ -4,9 +4,11 @@
 from warcraft.entities.entity import Entity
 from warcraft.entities.hero import Hero
 from warcraft.entities.skill import Skill
+from warcraft.entities.skill import TickRepeatSkill
 
 __all__ = (
     'Entity',
     'Hero',
     'Skill',
+    'TickRepeatSkill',
 )
