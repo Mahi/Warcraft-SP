@@ -201,6 +201,16 @@ def _execute_pre_damage_skills(args):
     victim.hero.execute_skills('pre_player_victim', event_args)
 
 
+@ClientCommand('ultimate')
+@SayCommand('ultimate')
+def _execute_ultimate_skills(command, player_index, only=None):
+    """Execute player_ultimate skills."""
+    player = g_players[player_index]
+    if not player.dead:
+        player.hero.execute_skills('player_ultimate', {'player': player})
+    return CommandReturn.BLOCK
+
+
 # ======================================================================
 # >> EXPERIENCE POINT CALLBACKS
 # ======================================================================
