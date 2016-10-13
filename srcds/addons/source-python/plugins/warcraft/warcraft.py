@@ -366,7 +366,7 @@ def _on_spend_skills_menu_build(menu, player_index):
     menu.clear()
     menu.title = hero.name
     menu.description = _tr['Skill Points'].get_string(skill_points=hero.skill_points)
-    for skill in hero.skills.values():
+    for skill in hero.skills:
         if skill.required_level <= hero.level:
             text = _tr['Owned Skill Text'].get_string(skill=skill)
         else:
