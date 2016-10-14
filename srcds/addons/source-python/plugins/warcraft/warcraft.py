@@ -237,9 +237,10 @@ def _send_hero_info_message(event):
 
 
 @warcraft.listeners.OnHeroLevelUp
-def _send_level_up_message(hero, player, levels):
-    """Send a level up message to the player whose hero leveled up."""
+def _send_level_up_message_and_menu(hero, player, levels):
+    """Send a level up message and menu to the player."""
     _level_up_message.send(player.index, hero=hero)
+    spend_skills_menu.send(player.index)
 
 
 # ======================================================================
