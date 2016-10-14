@@ -269,6 +269,7 @@ def _spendskills_command_callback(command, player_index, only=None):
 @SayCommand('resetskills')
 def _resetskills_command_callback(command, player_index, only=None):
     g_players[player_index].hero.reset_skills()
+    _skills_reset_message.send(player_index)
     return CommandReturn.BLOCK
 
 @ClientCommand('heroinfo')
@@ -303,6 +304,7 @@ _data_save_repeat.start(240, 0)
 _tr = LangStrings('warcraft')
 _hero_info_message = SayText2(_tr['Hero Info'])
 _level_up_message = SayText2(_tr['Level Up'])
+_skills_reset_message = SayText2(_tr['Skills Reset'])
 
 
 # ======================================================================
@@ -326,6 +328,7 @@ def _on_main_menu_select(menu, player_index, choice):
     player = g_players[player_index]
     if choice.value == 'reset':
         player.hero.reset_skills()
+        _skills_reset_message.send(player_index)
         return menu
     return choice.value
 
