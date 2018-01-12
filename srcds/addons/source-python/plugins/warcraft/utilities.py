@@ -129,8 +129,8 @@ class CooldownDict(collections.defaultdict):
     """A dictionary for managing cooldowns.
 
     For every individual cooldown, you must come up with an unique key.
-    Good examples are the name of the function/similar whose cooldown
-    you're managing, or the function/similar itself (if hashable).
+    Good examples are the name of the function whose cooldown
+    you're managing, or the function itself (if hashable).
 
     Example usage to prevent printing too often:
 

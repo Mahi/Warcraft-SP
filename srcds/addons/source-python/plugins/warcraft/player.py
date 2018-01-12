@@ -1,8 +1,8 @@
 # Python 3 imports
 import collections
 
-# Custom Source.Python imports
-import easyplayer
+# Source.Python imports
+from players.entity import Player as SpPlayer
 
 # Warcraft imports
 from warcraft.entities import Hero
@@ -12,7 +12,7 @@ __all__ = (
 )
 
 
-class Player(easyplayer.Player):
+class Player(SpPlayer):
     """Player class with support for managing Warcraft heroes.
 
     Each player has an ordered dictionary of his heroes in the format
@@ -47,4 +47,4 @@ class Player(easyplayer.Player):
 
     def calculate_total_level(self):
         """Calculate the total level of all of player's heroes."""
-        return sum(hero.level for hero in self.heroes.values()) 
+        return sum(hero.level for hero in self.heroes.values())
