@@ -93,7 +93,7 @@ def _serialize_player_data(player):
     )
 
 
-def _save_player_data(player, *,  commit=True):
+def _save_player_data(player, *, commit=True):
     """Save individual player's data into the database."""
     player_data, hero_data, skills_data = _serialize_player_data(player)
     g_database.save_player(player_data)
@@ -253,11 +253,13 @@ def _warcraft_command_callback(command, player_index, only=None):
     main_menu.send(player_index)
     return CommandReturn.BLOCK
 
+
 @ClientCommand('changehero')
 @SayCommand('changehero')
 def _changehero_command_callback(command, player_index, only=None):
     change_hero_menu.send(player_index)
     return CommandReturn.BLOCK
+
 
 @ClientCommand('spendskills')
 @SayCommand('spendskills')
@@ -265,12 +267,14 @@ def _spendskills_command_callback(command, player_index, only=None):
     spend_skills_menu.send(player_index)
     return CommandReturn.BLOCK
 
+
 @ClientCommand('resetskills')
 @SayCommand('resetskills')
 def _resetskills_command_callback(command, player_index, only=None):
     g_players[player_index].hero.reset_skills()
     _skills_reset_message.send(player_index)
     return CommandReturn.BLOCK
+
 
 @ClientCommand('heroinfo')
 @SayCommand('heroinfo')
@@ -311,6 +315,10 @@ _skills_reset_message = SayText2(_tr['Skills Reset'])
 # >> MENUS
 # ======================================================================
 
+main_menu = PagedMenu(title=_tr['Main Menu'])
+
+
+@main_menu.register_build_callback
 def _on_main_menu_build(menu, player_index):
     """Build the main menu."""
     player = g_players[player_index]
@@ -323,6 +331,8 @@ def _on_main_menu_build(menu, player_index):
         PagedOption(_tr['Hero Infos'], hero_infos_menu),
     ])
 
+
+@main_menu.register_select_callback
 def _on_main_menu_select(menu, player_index, choice):
     """React to a main menu selection."""
     player = g_players[player_index]
@@ -332,13 +342,14 @@ def _on_main_menu_select(menu, player_index, choice):
         return menu
     return choice.value
 
-main_menu = PagedMenu(
-    title=_tr['Main Menu'],
-    build_callback=_on_main_menu_build,
-    select_callback=_on_main_menu_select,
+
+change_hero_menu = PagedMenu(
+    title=_tr['Change Hero'],
+    parent_menu=main_menu,
 )
 
 
+@change_hero_menu.register_build_callback
 def _on_change_hero_menu_build(menu, player_index):
     """Build the change hero menu."""
     player = g_players[player_index]
@@ -354,6 +365,8 @@ def _on_change_hero_menu_build(menu, player_index):
             text = _tr['Unowned Hero Text'].get_string(hero=hero_class)
             menu.append(PagedOption(text, None, False, False))
 
+
+@change_hero_menu.register_select_callback
 def _on_change_hero_menu_select(menu, player_index, choice):
     """React to a change hero menu selection."""
     player = g_players[player_index]
@@ -365,14 +378,11 @@ def _on_change_hero_menu_select(menu, player_index, choice):
     player.hero = player.heroes[hero_id]
     player.client_command('kill', True)
 
-change_hero_menu = PagedMenu(
-    title=_tr['Change Hero'],
-    build_callback=_on_change_hero_menu_build,
-    select_callback=_on_change_hero_menu_select,
-    parent_menu=main_menu,
-)
+
+spend_skills_menu = PagedMenu(parent_menu=main_menu)
 
 
+@spend_skills_menu.register_build_callback
 def _on_spend_skills_menu_build(menu, player_index):
     """Build the spend skills menu."""
     player = g_players[player_index]
@@ -388,6 +398,8 @@ def _on_spend_skills_menu_build(menu, player_index):
         can_upgrade = hero.can_upgrade_skill(skill)
         menu.append(PagedOption(text, skill, can_upgrade, can_upgrade))
 
+
+@spend_skills_menu.register_select_callback
 def _on_spend_skills_menu_select(menu, player_index, choice):
     """React to an spend skills menu selection."""
     hero = g_players[player_index].hero
@@ -395,29 +407,25 @@ def _on_spend_skills_menu_select(menu, player_index, choice):
         hero.upgrade_skill(choice.value)
     return menu
 
-spend_skills_menu = PagedMenu(
+
+hero_infos_menu = PagedMenu(
+    title=_tr['Hero Infos'],
     parent_menu=main_menu,
-    build_callback=_on_spend_skills_menu_build,
-    select_callback=_on_spend_skills_menu_select,
 )
 
 
+@hero_infos_menu.register_build_callback
 def _on_hero_infos_menu_build(menu, player_index):
     """Build the hero infos menu."""
     menu.clear()
     for hero_class in g_heroes.values():
         menu.append(PagedOption(hero_class.name, hero_class))
 
+
+@hero_infos_menu.register_select_callback
 def _on_hero_infos_menu_select(menu, player_index, choice):
     """React to a hero infos menu selection."""
     return HeroInfoMenu(choice.value, parent_menu=hero_infos_menu)
-
-hero_infos_menu = PagedMenu(
-    title=_tr['Hero Infos'],
-    parent_menu=main_menu,
-    build_callback=_on_hero_infos_menu_build,
-    select_callback=_on_hero_infos_menu_select,
-)
 
 
 class HeroInfoMenu(ListMenu):
