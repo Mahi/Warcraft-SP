@@ -4,8 +4,8 @@
 import collections
 
 # Source.Python imports
-from listeners.tick import TickRepeat
-from listeners.tick import TickRepeatStatus
+from listeners.tick import Repeat
+from listeners.tick import RepeatStatus
 
 # Warcraft imports
 from warcraft.entities.entity import Entity
@@ -13,7 +13,7 @@ from warcraft.utilities import CooldownDict
 
 __all__ = (
     'Skill',
-    'TickRepeatSkill',
+    'RepeatSkill',
 )
 
 
@@ -152,20 +152,20 @@ class Skill(Entity, metaclass=_SkillMeta):
             callback(self, **event_args)
 
 
-class _TickRepeatSkillMeta(_SkillMeta):
+class _RepeatSkillMeta(_SkillMeta):
 
     def __init__(cls, name, bases, attrs):
         """Initialize the skill class and register its callbacks."""
         super().__init__(name, bases, attrs)
-        cls._event_callbacks['player_spawn'].append(cls._start_tick_repeat)
-        cls._event_callbacks['player_death'].append(cls._stop_tick_repeat)
+        cls._event_callbacks['player_spawn'].append(cls._start_repeat)
+        cls._event_callbacks['player_death'].append(cls._stop_repeat)
 
 
-class TickRepeatSkill(Skill, metaclass=_TickRepeatSkillMeta):
+class RepeatSkill(Skill, metaclass=_RepeatSkillMeta):
     """A skill class which ticks repeatedly."""
 
     def __init__(self, owner, level=0):
-        """Initialize the skill. Adds :attr:`_tick_repeat` attribute.
+        """Initialize the skill. Adds :attr:`_repeat` attribute.
 
         :param object owner:
             The owner of the skill
@@ -173,23 +173,23 @@ class TickRepeatSkill(Skill, metaclass=_TickRepeatSkillMeta):
             Initial level of the skill
         """
         super().__init__(owner, level)
-        self._tick_repeat = TickRepeat(self._tick)
+        self._repeat = Repeat(self._tick)
 
     @Skill.level.setter
     def level(self, value):
         Skill.level.fset(value)
         if value == 0:
-            self._stop_tick_repeat()
-        elif self._tick_repeat.status == TickRepeatStatus.STOPPED:
-            self._tick_repeat.start(1, 0)
+            self._stop_repeat()
+        elif self._repeat.status == RepeatStatus.STOPPED:
+            self._repeat.start(1, 0)
 
-    def _start_tick_repeat(self, *args, **kwargs):
+    def _start_repeat(self, *args, **kwargs):
         """Start the :attr:`tick_repeat`."""
-        self._tick_repeat.start(1, 0)
+        self._repeat.start(1, 0)
 
-    def _stop_tick_repeat(self, *args, **kwargs):
+    def _stop_repeat(self, *args, **kwargs):
         """Stop the :attr:`tick_repeat`."""
-        self._tick_repeat.stop()
+        self._repeat.stop()
 
     def _tick(self):
         """A method to call on every tick of :attr:`_tick_repeat`."""

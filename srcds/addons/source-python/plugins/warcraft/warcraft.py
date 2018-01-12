@@ -13,7 +13,7 @@ from entities.hooks import EntityCondition
 from entities.hooks import EntityPreHook
 from events import Event
 from listeners import OnLevelEnd
-from listeners.tick import TickRepeat
+from listeners.tick import Repeat
 from memory import make_object
 from menus import ListMenu
 from menus import ListOption
@@ -301,7 +301,7 @@ g_heroes = OrderedDict(
 g_database = warcraft.database.SQLite(PLUGIN_DATA_PATH / 'warcraft.db')
 
 # A tick repeat for saving everyone's data every 4 minutes
-_data_save_repeat = TickRepeat(_save_all_data)
+_data_save_repeat = Repeat(_save_all_data)
 _data_save_repeat.start(240, 0)
 
 # Translations for the Warcraft plugin
