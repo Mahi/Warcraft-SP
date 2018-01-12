@@ -152,17 +152,10 @@ class Skill(Entity, metaclass=_SkillMeta):
             callback(self, **event_args)
 
 
-class _RepeatSkillMeta(_SkillMeta):
-
-    def __init__(cls, name, bases, attrs):
-        """Initialize the skill class and register its callbacks."""
-        super().__init__(name, bases, attrs)
-        cls._event_callbacks['player_spawn'].append(cls._start_repeat)
-        cls._event_callbacks['player_death'].append(cls._stop_repeat)
-
-
-class RepeatSkill(Skill, metaclass=_RepeatSkillMeta):
+class RepeatSkill(Skill):
     """A skill class which ticks repeatedly."""
+
+    seconds_between_ticks = 1
 
     def __init__(self, owner, level=0):
         """Initialize the skill. Adds :attr:`_repeat` attribute.
@@ -179,15 +172,15 @@ class RepeatSkill(Skill, metaclass=_RepeatSkillMeta):
     def level(self, value):
         Skill.level.fset(value)
         if value == 0:
-            self._stop_repeat()
+            self.stop_repeat()
         elif self._repeat.status == RepeatStatus.STOPPED:
-            self._repeat.start(1, 0)
+            self.start_repeat()
 
-    def _start_repeat(self, *args, **kwargs):
+    def start_repeat(self, *args, **kwargs):
         """Start the :attr:`tick_repeat`."""
-        self._repeat.start(1, 0)
+        self._repeat.start(self.seconds_between_ticks, 0)
 
-    def _stop_repeat(self, *args, **kwargs):
+    def stop_repeat(self, *args, **kwargs):
         """Stop the :attr:`tick_repeat`."""
         self._repeat.stop()
 
